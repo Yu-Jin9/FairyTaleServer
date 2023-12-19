@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fairytale.server.model.member.mapper.MemberMapper">
+
+    <!-- 회원가입 -->
+    <insert id="regist" parameterType="MemberDto">
+        INSERT INTO "USER" (ID, PW, NAME, NICK, BIRTH, PROFILE)
+        VALUES (#{id}, #{pw}, #{name}, #{nick}, #{birth}, #{profile})
+    </insert>
+
+    <!-- 아이디 중복 확인 -->
+    <select id="idCheck" parameterType="MemberDto" resultType="MemberDto" >
+        SELECT ID FROM "USER" WHERE ID = #{id}
+    </select>
+
+    <!-- 로그인 -->
+    <select id="login" parameterType="MemberDto" resultType="MemberDto" >
+        SELECT * FROM "USER" WHERE ID =#{id} AND PW =#{pw}
+    </select>
+
+    <!-- 내 정보 페이지 사용자 정보 가져오기 -->
+    <select id="userProfile" parameterType="MemberDto" resultType="MemberDto">
+        SELECT "ID", "PW", "NAME", "NICK", "BIRTH", "PROFILE" FROM "USER" WHERE ID = #{id}
+    </select>
+
+    <!-- 현재 비밀번호 확인 -->
+    <select id="checkPassword" parameterType="MemberDto" resultType="MemberDto" >
+        SELECT PW FROM "USER" WHERE PW = #{pw} AND ID = #{id}
+    </select>
+
+    <!-- 개인 정보 수정 Nick -->
+    <update id="modifyNick" parameterType="MemberDto" >
+        UPDATE "USER"
+        SET "NICK"=#{nick} WHERE ID = #{id}
+    </update>
+
+    <!-- 개인 정보 수정 Pw -->
+    <update id="modifyPw" parameterType="MemberDto" >
+        UPDATE "USER"
+        SET "PW"=#{pw} WHERE ID = #{id}
+    </update>
+
+    <!-- 개인 정보 수정 Profile -->
+    <update id="modifyProfile" parameterType="MemberDto" >
+        UPDATE "USER"
+        SET "PROFILE"=#{profile} WHERE ID = #{id}
+    </update>
+
+    <!-- 수정된 정보를 context에 담기 위함 -->
+    <select id="getNewInfo" parameterType="MemberDto" resultType="MemberDto">
+        SELECT * FROM "USER" WHERE "ID"=#{id}
+    </select>
+
+    <!-- 회원 탈퇴 -->
+    <delete id="delete" parameterType="MemberDto" >
+        DELETE FROM "USER" WHERE "ID" = #{id} AND "PW" = #{pw}
+    </delete>
+
+    <!-- 유료 회원 인지 체크 -->
+    <select id="checkMembership" parameterType="MemberDto" resultType="MemberDto">
+        SELECT PREMIUM, "DATE", "ENDDATE" FROM "USER" WHERE "ID" = #{id}
+    </select>
+
+    <!-- 유료 회원 전환 -->
+    <update id="setMembership" parameterType="MemberDto">
+        UPDATE "USER" SET "PREMIUM"='true', "DATE"=SYSDATE, "ENDDATE"=ADD_MONTHS(SYSDATE, 1) WHERE "ID"=#{id}
+    </update>
+
+    <select id="memberList" parameterType="MemberDto" resultType="MemberDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER  rnum
+                          FROM
+                              "USER" a
+                      ) num
+        WHERE num.rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <select id="payMemberList" parameterType="MemberDto" resultType="MemberDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY a."DATE" DESC) as rnum
+                          FROM
+                              "USER" a
+                      ) num
+        WHERE num.rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <select id="getMemberTotalCount" resultType="int">
+        SELECT COUNT(*) FROM "USER"
+    </select>
+
+</mapper>

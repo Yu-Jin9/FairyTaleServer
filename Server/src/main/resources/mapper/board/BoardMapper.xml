@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fairytale.server.model.board.mapper.BoardMapper">
+
+    <!-- BOARD에 새로운 레코드 삽입하는 매퍼 -->
+    <insert id="insertBoard" parameterType="BoardDto">
+        INSERT INTO BOARD ("BOARD_NUM",
+                           "SEQ_NUM",
+                           "NAME",
+                           "ID",
+                           "TITLE",
+                           "TITLE_IMAGE",
+                           "SUMMARY",
+                           "LIKES",
+                           "VIEW_CNT",
+                           "COMMENT_CNT",
+                           "DATE")
+        VALUES (seq_board.nextval,
+                #{seqNum},
+                #{name},
+                #{id},
+                #{title},
+                #{titleImage},
+                #{summary},
+                0,
+                0,
+                0,
+                SYSDATE)
+    </insert>
+
+    <!-- 데이터 총 개수 가져오기 -->
+    <select id="getBookTotalCount" resultType="int">
+        SELECT COUNT(*) FROM "BOOK"
+    </select>
+
+    <!-- 데이터 총 개수 가져오기 -->
+    <select id="getBoardTotalCount" resultType="int">
+        SELECT COUNT(*) FROM "BOARD"
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 리스트로 불러오는 매퍼 -->
+    <select id="boardList" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+            SELECT
+                a.*,
+                ROW_NUMBER() OVER (ORDER BY "DATE" DESC) as rnum
+            FROM
+                "BOARD" a
+        ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- BOOK 테이블의 데이터를 리스트로 불러오는 매퍼 -->
+    <select id="myBookList" parameterType="BoardDto" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY a."DATE" DESC) as rnum
+                          FROM
+                              "BOOK" a WHERE a."ID"=#{id}
+                      ) num
+        WHERE num.rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- BOOK 테이블의 데이터를 리스트로 불러오는 매퍼 -->
+    <select id="myBoardList" parameterType="BoardDto" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY a."DATE" DESC) as rnum
+                          FROM
+                              "BOARD" a WHERE a."NAME"=#{name}
+                      ) num
+        WHERE num.rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+
+    <!-- 유료회원 BOARD 리스트 랜덤 3개 가져오기 -->
+    <select id="promotionList" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+        SELECT a.*, ROW_NUMBER() OVER (ORDER BY DBMS_RANDOM.VALUE) AS rnum
+        FROM "PROMOTIONBOARD" a
+        ) b
+        WHERE b.rnum &lt;= 3
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 좋아요 수(LIKES)에 따라 내림차순으로 리스트로 불러오는 매퍼 -->
+    <select id="likeBoardList" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+            SELECT
+                a.*,
+                ROW_NUMBER() OVER (ORDER BY LIKES DESC, "DATE" DESC) as rnum
+            FROM
+                "BOARD" a
+        ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 조회수(VIEW_CNT)에 따라 내림차순으로 리스트로 불러오는 매퍼 -->
+    <select id="viewBoardList" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+            SELECT
+                a.*,
+                ROW_NUMBER() OVER (ORDER BY VIEW_CNT DESC, "DATE" DESC) as rnum
+            FROM
+                "BOARD" a
+        ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 댓글 수(COMMENT_CNT)에 따라 내림차순으로 리스트로 불러오는 매퍼 -->
+    <select id="commentBoardList" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+            SELECT
+                a.*,
+                ROW_NUMBER() OVER (ORDER BY COMMENT_CNT DESC, "DATE" DESC) as rnum
+            FROM
+                "BOARD" a
+        ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- 선택한 BOARD 테이블 가져오기 -->
+    <select id="selectBoard" resultType="com.fairytale.server.model.board.dto.BoardDto" parameterType="BoardDto">
+        SELECT * FROM "BOARD" WHERE SEQ_NUM = #{seqNum}
+    </select>
+
+    <!-- 사용자의 현재 좋아요 상태 확인 -->
+    <select id="checkUserLike" parameterType="BoardDto" resultType="int">
+        SELECT LIKED
+        FROM USER_LIKES
+        WHERE USER_ID = #{userId}
+          AND BOARD_NUM = #{boardNum}
+    </select>
+
+    <!-- 사용자의 현재 좋아요 상태 확인 / 좋아요 아이콘에 사용되는 mapper -->
+    <select id="checkUserLikeState" parameterType="BoardDto" resultType="int">
+        SELECT LIKED
+        FROM USER_LIKES
+        WHERE USER_ID = #{userId}
+          AND BOARD_NUM = #{boardNum}
+    </select>
+
+    <!-- 좋아요 상태 업데이트 -->
+    <update id="updateUserLike" parameterType="BoardDto">
+        UPDATE USER_LIKES
+        SET LIKED = CASE
+                        WHEN LIKED = 1 THEN 0
+                        ELSE 1
+            END
+        WHERE USER_ID = #{userId}
+          AND BOARD_NUM = #{boardNum}
+    </update>
+
+    <!-- 좋아요 상태 추가 -->
+    <insert id="insertUserLike" parameterType="BoardDto">
+        INSERT INTO USER_LIKES (USER_ID, BOARD_NUM, LIKED, "DATE")
+        VALUES (#{userId}, #{boardNum}, 1, SYSDATE)
+    </insert>
+
+    <!-- 특정 게시물의 좋아요 개수 업데이트 -->
+    <update id="updateBoardLikes" parameterType="BoardDto">
+        UPDATE BOARD
+        SET LIKES = (SELECT COUNT(*) FROM USER_LIKES WHERE BOARD_NUM = #{boardNum} AND LIKED = 1)
+        WHERE BOARD_NUM = #{boardNum}
+    </update>
+
+    <!-- 특정 게시물의 좋아요 개수 조회 -->
+    <select id="getLikeCount" resultType="int" parameterType="BoardDto">
+        SELECT COUNT(*) FROM USER_LIKES WHERE BOARD_NUM = #{boardNum} AND LIKED = 1
+    </select>
+
+    <!-- 특정 게시물의 조회수 증가 -->
+    <update id="boardView" parameterType="BoardDto">
+        UPDATE BOARD
+        SET VIEW_CNT = NVL(VIEW_CNT, 0) + 1
+        WHERE BOARD_NUM = #{boardNum}
+    </update>
+
+    <!-- COMMENT 테이블에서 관련 댓글 삭제 -->
+    <delete id="deleteComment" parameterType="BoardDto">
+        DELETE FROM "COMMENT" WHERE "BOARD_NUM" = #{boardNum}
+    </delete>
+
+    <!-- USER_LIKES 테이블에서 관련 좋아요 삭제 -->
+    <delete id="deleteLikes" parameterType="BoardDto">
+        DELETE FROM USER_LIKES WHERE"BOARD_NUM" = #{boardNum}
+    </delete>
+
+    <!-- BOARD 테이블에서 특정 게시물 삭제 -->
+    <delete id="deleteBoard" parameterType="BoardDto">
+        DELETE FROM BOARD WHERE BOARD_NUM = #{boardNum}
+    </delete>
+
+    <!-- 한달 전부터 현재 시간까지 좋아요 수와 댓글 수를 총합하여 5개의 게시물을 보여줌 -->
+    <select id="bestBoard" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+        SELECT
+        B.SEQ_NUM,
+        B.BOARD_NUM,
+        B.TITLE_IMAGE,
+        B.TITLE,
+        B.NAME,
+        COUNT(DISTINCT U.USER_ID) AS TOTAL_LIKES,
+        COUNT(DISTINCT C.COMMENT_ID) AS TOTAL_COMMENTS
+        FROM
+        "BOARD" B
+        LEFT JOIN "USER_LIKES" U ON B.BOARD_NUM = U.BOARD_NUM
+        AND U."DATE" BETWEEN ADD_MONTHS(SYSDATE, -1) AND SYSDATE
+        LEFT JOIN "COMMENT" C ON B.BOARD_NUM = C.BOARD_NUM
+        AND C."DATE" BETWEEN ADD_MONTHS(SYSDATE, -1) AND SYSDATE
+        GROUP BY
+        B.SEQ_NUM, B.BOARD_NUM, B.TITLE_IMAGE, B.TITLE, B.NAME
+        ORDER BY
+        TOTAL_LIKES DESC, TOTAL_COMMENTS DESC
+        )
+        WHERE ROWNUM &lt;= 5
+    </select>
+
+    <!-- 내가 만든 게시물 가져오기 -->
+    <select id="myBoard" parameterType="BoardDto" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM BOARD WHERE ID = #{id} ORDER BY "DATE" DESC
+    </select>
+
+    <!-- 게시물 검색 -->
+    <select id="selectTitle" parameterType="BoardDto" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM BOARD WHERE TITLE LIKE '%' || #{title} || '%'
+    </select>
+
+    <!-- 관리자 페이지에서 5개 띄우기 -->
+    <select id="makeInfo" resultType="com.fairytale.server.model.board.dto.BoardDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY a."DATE" DESC) as rnum
+                          FROM
+                              "BOOK" a
+                      ) num
+        WHERE num.rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+</mapper>

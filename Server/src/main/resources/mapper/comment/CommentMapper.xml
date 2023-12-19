@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fairytale.server.model.comment.mapper.CommentMapper">
+
+    <!-- 댓글 추가 -->
+    <insert id="addComment" parameterType="CommentDto">
+        INSERT INTO "COMMENT" ("BOARD_NUM", "COMMENT_ID", "NAME", "ID", "COMMENT_TEXT", "DATE")
+        VALUES (#{boardNum}, seq_comment.NEXTVAL, #{name}, #{id}, #{commentText}, SYSDATE)
+    </insert>
+
+    <!-- 댓글 수 업데이트 -->
+    <update id="updateCommentCount" parameterType="CommentDto">
+        UPDATE "BOARD"
+        SET "COMMENT_CNT" = "COMMENT_CNT" + 1
+        WHERE "BOARD_NUM" = #{boardNum}
+    </update>
+
+    <!-- 댓글 삭제 -->
+    <delete id="deleteComment" parameterType="CommentDto">
+        DELETE FROM "COMMENT"
+        WHERE "COMMENT_ID" = #{commentId}
+    </delete>
+
+    <!-- 댓글 수 감소 -->
+    <update id="decrementCommentCount" parameterType="CommentDto">
+        UPDATE "BOARD"
+        SET "COMMENT_CNT" = "COMMENT_CNT" - 1
+        WHERE "BOARD_NUM" = #{boardNum}
+    </update>
+
+    <select id="selectComment" parameterType="CommentDto" resultType="com.fairytale.server.model.comment.dto.CommentDto">
+        SELECT c.*, u.PROFILE
+        FROM "COMMENT" c
+                 LEFT JOIN "USER" u ON c."ID" = u."ID"
+        WHERE c."BOARD_NUM" = #{boardNum}
+        ORDER BY c."DATE" DESC
+    </select>
+
+</mapper>

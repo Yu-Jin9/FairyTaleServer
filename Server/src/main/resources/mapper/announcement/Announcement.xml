@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fairytale.server.model.announcement.mapper.AnnouncementMapper">
+
+    <!-- Announcement에 새로운 레코드 삽입하는 매퍼 -->
+    <insert id="insertAnnouncement" parameterType="AnnouncementDto">
+        INSERT INTO ANNOUNCEMENT (
+            "SEQ_NUM",
+            "TITLE",
+            "IMAGE",
+            "CONTEXT",
+            "ID",
+            "NAME",
+            "DATE",
+            "VIEWS"
+        )
+        VALUES (
+                   seq_announcement.nextval,
+                   #{title},
+                   #{image},
+                   #{context},
+                   #{id},
+                   #{name},
+                   SYSDATE,
+                   0
+               )
+    </insert>
+
+
+    <!-- 데이터 총 개수 가져오기 -->
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*) FROM ANNOUNCEMENT
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 리스트로 불러오는 매퍼 -->
+    <select id="AnnouncementList" parameterType="AnnouncementDto" resultType="com.fairytale.server.model.announcement.dto.AnnouncementDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY "DATE" DESC) as rnum
+                          FROM
+                              ANNOUNCEMENT a
+                      ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- BOARD 테이블의 데이터를 조회수(VIEW_CNT)에 따라 내림차순으로 리스트로 불러오는 매퍼 -->
+    <select id="viewAnnouncementList" parameterType="AnnouncementDto" resultType="com.fairytale.server.model.announcement.dto.AnnouncementDto">
+        SELECT * FROM (
+                          SELECT
+                              a.*,
+                              ROW_NUMBER() OVER (ORDER BY VIEWS DESC, "DATE" DESC) as rnum
+                          FROM
+                              ANNOUNCEMENT a
+                      ) WHERE
+            rnum BETWEEN ((#{currentPage} - 1) * #{pageSize} + 1) AND (#{currentPage} * #{pageSize})
+    </select>
+
+    <!-- 선택한 BOARD 테이블 가져오기 -->
+    <select id="selectAnnouncement" resultType="com.fairytale.server.model.announcement.dto.AnnouncementDto" parameterType="AnnouncementDto">
+        SELECT * FROM ANNOUNCEMENT WHERE SEQ_NUM = #{seqNum}
+    </select>
+
+    <!-- 특정 게시물의 조회수 증가 -->
+    <update id="announcementView" parameterType="AnnouncementDto">
+        UPDATE ANNOUNCEMENT
+        SET VIEWS = NVL(VIEWS, 0) + 1
+        WHERE SEQ_NUM = #{seqNum}
+    </update>
+
+    <!-- BOARD 테이블에서 특정 게시물 삭제 -->
+    <delete id="deleteAnnouncement" parameterType="AnnouncementDto">
+        DELETE FROM ANNOUNCEMENT WHERE SEQ_NUM = #{seqNum}
+    </delete>
+
+    <!-- 게시물 검색 -->
+    <select id="selectTitle" parameterType="AnnouncementDto" resultType="com.fairytale.server.model.announcement.dto.AnnouncementDto">
+        SELECT * FROM ANNOUNCEMENT WHERE TITLE LIKE '%' || #{title} || '%'
+    </select>
+</mapper>

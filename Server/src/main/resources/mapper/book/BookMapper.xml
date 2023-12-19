@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fairytale.server.model.book.mapper.BookMapper">
+
+    <!-- 책 생성 쿼리 -->
+    <insert id="createBook" parameterType="BookDto">
+        INSERT INTO BOOK (SEQ_NUM, ID, NAME)
+        VALUES (seq_book.nextval, #{id}, #{name} )
+    </insert>
+    <!-- 마지막 SEQ_NUM 얻기 -->
+    <select id="getLastSeqNum" resultType="int">
+        SELECT seq_book.currval FROM dual
+    </select>
+
+    <!-- CONTEXT 삽입 쿼리 -->
+    <insert id="insertContext" parameterType="BookDto">
+        INSERT INTO CONTEXT (SEQ_NUM, TEXT, PAGE_NUM)
+        VALUES (#{seqNum}, #{text}, #{pageNum})
+    </insert>
+
+    <!-- IMAGE 삽입 쿼리 -->
+    <insert id="insertImage" parameterType="BookDto">
+        INSERT INTO IMAGE (SEQ_NUM, IMAGE, PAGE_NUM)
+        VALUES (#{seqNum}, #{image}, #{pageNum})
+    </insert>
+
+    <!-- CONTEXT 테이블에서 최대 PAGE_NUM 구하기 -->
+    <select id="getMaxPageNumFromContextAndImage" parameterType="BookDto" resultType="int">
+        SELECT MAX(PAGE_NUM) FROM CONTEXT WHERE SEQ_NUM = #{seqNum}
+    </select>
+
+    <!-- BOOK 테이블의 PAGE_NUM 업데이트 -->
+    <update id="updateBookPageNum" parameterType="BookDto">
+        UPDATE BOOK
+        SET PAGE_NUM = #{pageNum}, TITLE = #{title}, TITLE_IMAGE = #{titleImage}, SUMMARY = #{summary}, "DATE" = SYSDATE
+        WHERE SEQ_NUM = #{seqNum}
+    </update>
+
+
+    <select id="viewBook" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT * FROM "BOOK" WHERE SEQ_NUM = #{seqNum}
+    </select>
+
+    <select id="pageData" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT
+            c.TEXT,
+            i.IMAGE
+        FROM "CONTEXT" c
+                 LEFT JOIN "IMAGE" i ON c.SEQ_NUM = i.SEQ_NUM AND c.PAGE_NUM = i.PAGE_NUM
+        WHERE c.SEQ_NUM = #{seqNum} AND c.PAGE_NUM = #{pageNum}
+    </select>
+
+    <!-- CONTEXT 테이블에서 레코드 삭제 -->
+    <delete id="deleteContextBySeqNum" parameterType="BookDto">
+        DELETE FROM CONTEXT WHERE SEQ_NUM = #{seqNum}
+    </delete>
+
+    <!-- IMAGE 테이블에서 레코드 삭제 -->
+    <delete id="deleteImageBySeqNum" parameterType="BookDto">
+        DELETE FROM IMAGE WHERE SEQ_NUM = #{seqNum}
+    </delete>
+
+    <!-- RECENTLY_BOOK 테이블에서 레코드 삭제 -->
+    <delete id="deleteRecentlyBySeqNum" parameterType="BookDto">
+        DELETE FROM RECENTLY_BOOK WHERE SEQ_NUM = #{seqNum}
+    </delete>
+
+    <!-- BOOK 테이블에서 레코드 삭제 -->
+    <delete id="deleteBookBySeqNum" parameterType="BookDto">
+        DELETE FROM BOOK WHERE SEQ_NUM = #{seqNum}
+    </delete>
+
+    <!-- seqNum에 해당하는 CONTEXT 가져오기 -->
+    <select id="getContext" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT * FROM CONTEXT WHERE SEQ_NUM = #{seqNum} ORDER BY PAGE_NUM ASC
+    </select>
+
+    <!-- 내가 만든 동화책 가져오기 -->
+    <select id="myFairyTale" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT * FROM BOOK WHERE ID = #{id} ORDER BY "DATE" DESC
+    </select>
+
+    <!-- 사용자가 해당 책을 읽어 보았는지 확인 -->
+    <select id="selectBook" parameterType="BookDto" resultType="Integer">
+        SELECT USER_PAGE_NUM FROM RECENTLY_BOOK WHERE SEQ_NUM = #{seqNum} AND (USER_ID = #{id} OR USER_ID IS NULL)
+    </select>
+
+    <!-- 사용자의 최근 읽은 동화책 가져오기 -->
+    <select id="selectRecently" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT B.*, RB.USER_PAGE_NUM
+        FROM RECENTLY_BOOK RB
+                 JOIN BOOK B ON RB.SEQ_NUM = B.SEQ_NUM
+        WHERE RB.USER_ID = #{id}
+        ORDER BY RB."DATE" DESC
+    </select>
+
+    <!-- 최근 읽은 동화책 페이지 업데이트 -->
+    <update id="updateRecently" parameterType="BookDto">
+        MERGE INTO RECENTLY_BOOK USING DUAL
+            ON (USER_ID = #{id} AND SEQ_NUM = #{seqNum})
+            WHEN MATCHED THEN
+                UPDATE SET USER_PAGE_NUM = #{pageNum}
+            WHEN NOT MATCHED THEN
+                INSERT (USER_ID, SEQ_NUM, USER_PAGE_NUM)
+                    VALUES (#{id}, #{seqNum}, #{pageNum})
+    </update>
+
+    <!-- 게시물 검색 -->
+    <select id="selectTitle" parameterType="BookDto" resultType="com.fairytale.server.model.book.dto.BookDto">
+        SELECT * FROM BOOK WHERE TITLE LIKE '%' || #{title} || '%'
+    </select>
+
+    <delete id="noTitleDelete" parameterType="BookDto">
+        DELETE FROM BOOK WHERE TITLE IS NULL AND "ID" = #{id}
+    </delete>
+
+</mapper>
